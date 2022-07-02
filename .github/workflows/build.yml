@@ -40,13 +40,7 @@ jobs:
           sudo mkdir rootfs/paru
           sudo mount --bind paru/ rootfs/paru/
           sudo mount --bind rootfs/ rootfs/
-          sudo arch-chroot rootfs
-          pacman-key --init && pacman-key --populate
-          pacman -Syu --noconfirm base base-devel rustup
-          rustup default stable
-          cd /paru
-          bash scripts/dist
-          exit
+          sudo arch-chroot rootfs /paru/scripts/chrootbuild
           mkdir -p artifacts
           sudo mv paru/paru.tar.zst artifacts/paru-${{ matrix.arch }}.tar.zst
       - uses: actions/upload-artifact@v2

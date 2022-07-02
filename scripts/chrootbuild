@@ -1,0 +1,10 @@
+#!/bin/sh
+
+PARU_DIR="$(dirname `realpath $0`)/.."
+
+pacman-key --init && pacman-key --populate
+pacman -Syu --noconfirm base base-devel rustup
+rustup default stable
+pushd $PARU_DIR
+bash scripts/dist
+popd
