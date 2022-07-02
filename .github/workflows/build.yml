@@ -34,14 +34,14 @@ jobs:
       - name: Build ${{ matrix.arch }} release
         shell: bash
         run: |
-          apt-get update
-          apt-get install arch-install-scripts bash xz zstd gzip gawk sed
+          sudo apt-get update
+          sudo apt-get install arch-install-scripts bash xz zstd gzip gawk sed
           mv paru/paru-*.tar.zst artifacts
-          bash bootstrap/arch-bootstrap.sh -a ${{ matrix.arch }} -q rootfs/
-          mkdir rootfs/paru
-          mount --bind paru/ rootfs/paru/
-          mount --bind rootfs/ rootfs/
-          arch-chroot rootfs
+          sudo bash bootstrap/arch-bootstrap.sh -a ${{ matrix.arch }} -q rootfs/
+          sudo mkdir rootfs/paru
+          sudo mount --bind paru/ rootfs/paru/
+          sudo mount --bind rootfs/ rootfs/
+          sudo arch-chroot rootfs
           pacman-key --init && pacman-key --populate
           pacman -Syu base base-devel rustup
           rustup default stable
@@ -49,7 +49,7 @@ jobs:
           bash scripts/dist
           exit
           mkdir -p artifacts
-          mv paru/paru.tar.zst artifacts/paru-${{ matrix.arch }}.tar.zst
+          sudo mv paru/paru.tar.zst artifacts/paru-${{ matrix.arch }}.tar.zst
       - uses: actions/upload-artifact@v2
         with:
           name: paru-${{ matrix.arch }}
