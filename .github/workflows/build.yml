@@ -43,7 +43,7 @@ jobs:
         run: |
           sudo chroot rootfs/ /bin/sh -c 'pacman-key --init && pacman-key --populate'
           sudo chroot rootfs/ /bin/pacman -Syu --noconfirm
-          sudo chroot rootfs/ /bin/pacman -S --needed base base-devel rustup
+          sudo chroot rootfs/ /bin/pacman -S --needed --noconfirm base base-devel rustup
           sudo chroot rootfs/ /bin/rustup default stable
           sudo chroot rootfs/ /bin/sh -c 'cd /paru && scripts/dist'
           mkdir -p artifacts
