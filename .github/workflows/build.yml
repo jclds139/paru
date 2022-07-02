@@ -36,14 +36,13 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install arch-install-scripts bash xz-utils zstd gzip gawk sed
-          mv paru/paru-*.tar.zst artifacts
           sudo bash bootstrap/arch-bootstrap.sh -a ${{ matrix.arch }} -q rootfs/
           sudo mkdir rootfs/paru
           sudo mount --bind paru/ rootfs/paru/
           sudo mount --bind rootfs/ rootfs/
           sudo arch-chroot rootfs
           pacman-key --init && pacman-key --populate
-          pacman -Syu base base-devel rustup
+          pacman -Syu --noconfirm base base-devel rustup
           rustup default stable
           cd /paru
           bash scripts/dist
