@@ -65,42 +65,20 @@ jobs:
         shell: bash
         run: |
           echo ::set-output name=TAG::${GITHUB_REF/refs\/tags\//}
+      - uses: actions/download-artifact@v2
+      - name: Tag Assets with Version
+        id: tag-assets
+        run: |
+          find . -type f -name 'paru-*.tar.zst' | while read file; do
+            mv "$file" "./paru-${{ steps.tags.outputs.tag }}-${file##*paru-}"
+          done
       - name: Create Release
         id: create_release
-        uses: actions/create-release@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ steps.tags.outputs.tag }}
-          release_name: ${{ steps.tags.outputs.tag }}
           draft: true
           prerelease: false
-
-
-  upload_artifacts:
-    name: Upload build artifacts to new release
-    needs: [build-releases, create_release]
-    strategy:
-      matrix:
-        arch: ${{ jobs.build-release.strategy.matrix.arch }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Read info
-        id: tags
-        shell: bash
-        run: |
-          echo ::set-output name=TAG::${GITHUB_REF/refs\/tags\//}
-      - uses: actions/download-artifact@v2
-        with:
-          name: paru-${{ matrix.arch }}
-      - name: Upload ${{ matrix.arch }} asset
-        id: upload-release-asset-${{ matrix.arch }}
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./paru-${{ matrix.arch }}.tar.zst
-          asset_name: paru-${{ steps.tags.outputs.tag }}-${{ matrix.arch }}.tar.zst
-          asset_content_type: application/tar+zstd
-
+          files: |
+            paru-*.tar.zst
