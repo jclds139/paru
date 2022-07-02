@@ -4,7 +4,7 @@ on:
     tags:
       - v*
 
-globals:
+env:
   arch_list:
           [
             "x86_64",
@@ -17,7 +17,7 @@ jobs:
   build-releases:
     strategy:
       matrix:
-        arch: ${{ globals.arch_list }}
+        arch: ${{ env.arch_list }}
     name: Build ${{ matrix.arch }}
     runs-on: ubuntu-latest
     steps:
@@ -85,7 +85,7 @@ jobs:
     needs: [build-releases, create_release]
     strategy:
       matrix:
-        arch: ${{ globals.arch_list }}
+        arch: ${{ env.arch_list }}
     runs-on: ubuntu-latest
     steps:
       - name: Read info
