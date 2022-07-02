@@ -41,11 +41,11 @@ jobs:
       - name: Build ${{ matrix.arch }} release
         shell: bash
         run: |
-          sudo chroot rootfs/ pacman-key --init && pacman-key --populate
-          sudo chroot rootfs/ pacman -Syu --noconfirm
-          sudo chroot rootfs/ pacman -S --needed base base-devel rustup
-          sudo chroot rootfs/ rustup default stable
-          sudo chroot rootfs/ sh -c 'cd /paru && scripts/dist'
+          sudo chroot rootfs/ /bin/sh -c 'pacman-key --init && pacman-key --populate'
+          sudo chroot rootfs/ /bin/pacman -Syu --noconfirm
+          sudo chroot rootfs/ /bin/pacman -S --needed base base-devel rustup
+          sudo chroot rootfs/ /bin/rustup default stable
+          sudo chroot rootfs/ /bin/sh -c 'cd /paru && scripts/dist'
           mkdir -p artifacts
           sudo mv rootfs/paru/paru.tar.zst artifacts/paru-${{ matrix.arch }}.tar.zst
           sudo chmod 644 artifacts/*
