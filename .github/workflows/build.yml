@@ -38,13 +38,17 @@ jobs:
           sudo apt-get install arch-install-scripts bash xz-utils zstd gzip gawk sed
           sudo bash bootstrap/arch-bootstrap.sh -a ${{ matrix.arch }} -q rootfs/
           sudo rsync -a paru/ rootfs/paru/
-      - name: Build ${{ matrix.arch }} release
+          sudo mount --bind rootfs/ rootfs/
+      - name: Install Build Dependencies in Chroot
         shell: bash
         run: |
           sudo arch-chroot rootfs/ /bin/sh -c 'pacman-key --init && pacman-key --populate'
           sudo arch-chroot rootfs/ /bin/pacman -Syu --noconfirm
           sudo arch-chroot rootfs/ /bin/pacman -S --needed --noconfirm base base-devel rustup
           sudo arch-chroot rootfs/ /bin/rustup default stable
+      - name: Build ${{ matrix.arch }} release
+        shell: bash
+        run: |
           sudo arch-chroot rootfs/ /bin/sh -c 'cd /paru && scripts/dist'
           mkdir -p artifacts
           sudo mv rootfs/paru/paru.tar.zst artifacts/paru-${{ matrix.arch }}.tar.zst
