@@ -31,16 +31,24 @@ jobs:
         uses: docker/setup-qemu-action@v1
         with:
           platforms: all
-      - name: Build ${{ matrix.arch }} release
+      - name: Bootstrap ${{ matrix.arch }} chroot
         shell: bash
         run: |
           sudo apt-get update
-          sudo apt-get install bash xz-utils zstd gzip gawk sed fakeroot fakechroot rsync
-          fakechroot -- fakeroot -- bash bootstrap/arch-bootstrap.sh -a ${{ matrix.arch }} -q rootfs/
-          fakeroot -- rsync -a paru/ rootfs/paru/
-          fakechroot -- fakeroot -- chroot rootfs/ /paru/scripts/chrootbuild
+          sudo apt-get install bash xz-utils zstd gzip gawk sed
+          sudo bash bootstrap/arch-bootstrap.sh -a ${{ matrix.arch }} -q rootfs/
+          sudo rsync -a paru/ rootfs/paru/
+      - name: Build ${{ matrix.arch }} release
+        shell: bash
+        run: |
+          sudo chroot rootfs/ pacman-key --init && pacman-key --populate
+          sudo chroot rootfs/ pacman -Syu --noconfirm
+          sudo chroot rootfs/ pacman -S --needed base base-devel rustup
+          sudo chroot rootfs/ rustup default stable
+          sudo chroot rootfs/ sh -c 'cd /paru && scripts/dist'
           mkdir -p artifacts
-          mv paru/paru.tar.zst artifacts/paru-${{ matrix.arch }}.tar.zst
+          sudo mv rootfs/paru/paru.tar.zst artifacts/paru-${{ matrix.arch }}.tar.zst
+          sudo chmod 644 artifacts/*
       - uses: actions/upload-artifact@v2
         with:
           name: paru-${{ matrix.arch }}
