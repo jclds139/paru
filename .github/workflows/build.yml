@@ -49,6 +49,8 @@ jobs:
       - name: Build ${{ matrix.arch }} release
         shell: bash
         run: |
+          sudo mkdir -p rootfs/root/.cargo/ /tmp/cargo
+          sudo mount --bind /tmp/cargo rootfs/root/.cargo/
           sudo arch-chroot rootfs/ /bin/sh -c 'cd /paru && scripts/dist'
           mkdir -p artifacts
           sudo mv rootfs/paru/paru.tar.zst artifacts/paru-${{ matrix.arch }}.tar.zst
