@@ -4,55 +4,58 @@ on:
     tags:
       - v*
 
+globals:
+  arch_list:
+          [
+            "x86_64",
+            "aarch64",
+            "armv7h"
+          ]
+
+
 jobs:
   build-releases:
     strategy:
       matrix:
-        arch:
-          [
-            "linux/amd64 x86_64",
-            "linux/arm64/v8 aarch64",
-            "linux/arm/v7 armv7h"
-          ]
+        arch: ${{ globals.arch_list }}
     name: Build ${{ matrix.arch }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+        with:
+          path: 'paru/'
+      - name: Get arch-bootstrap
+        uses: actions/checkout@v3
+        with:
+          path: 'bootstrap/'
+          repository: 'https://github.com/tokland/arch-bootstrap.git'
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
         with:
           platforms: all
-      - name: Set up Docker Buildx
-        id: buildx
-        uses: docker/setup-buildx-action@v1
-        with:
-          version: latest
-      - name: Read info
-        id: tags
-        shell: bash
-        run: |
-          arch="${{ matrix.arch }}"
-          echo ::set-output name=PLATFORM::${arch%% *}
-          echo ::set-output name=ARCH::${arch##* }
       - name: Build ${{ matrix.arch }} release
         shell: bash
         run: |
-          arch="${{ matrix.arch }}"
-          PLATFORM=${arch%% *}
-          ARCH=${arch##* }
-          mkdir artifacts
-          docker buildx build --platform $PLATFORM \
-          --tag paru:$ARCH \
-          --load \
-          .
-          docker create --name paru-$ARCH paru:$ARCH
-          docker cp paru-$ARCH:/app/paru.tar.zst paru-$ARCH.tar.zst
-          docker container rm paru-$ARCH
-          mv paru-*.tar.zst artifacts
+          apt-get update
+          apt-get install arch-install-scripts bash xz zstd gzip gawk sed
+          mv paru/paru-*.tar.zst artifacts
+          bash bootstrap/arch-bootstrap.sh -a ${{ matrix.arch }} -q rootfs/
+          mkdir rootfs/paru
+          mount --bind paru/ rootfs/paru/
+          mount --bind rootfs/ rootfs/
+          arch-chroot rootfs
+          pacman-key --init && pacman-key --populate
+          pacman -Syu base base-devel rustup
+          rustup default stable
+          cd /paru
+          bash scripts/dist
+          exit
+          mkdir -p artifacts
+          mv paru/paru.tar.zst artifacts/paru-${{ matrix.arch }}.tar.zst
       - uses: actions/upload-artifact@v2
         with:
-          name: paru-${{ steps.tags.outputs.arch }}
+          name: paru-${{ matrix.arch }}
           path: artifacts
 
   create_release:
@@ -65,15 +68,6 @@ jobs:
         shell: bash
         run: |
           echo ::set-output name=TAG::${GITHUB_REF/refs\/tags\//}
-      - uses: actions/download-artifact@v2
-        with:
-          name: paru-x86_64
-      - uses: actions/download-artifact@v2
-        with:
-          name: paru-aarch64
-      - uses: actions/download-artifact@v2
-        with:
-          name: paru-armv7h
       - name: Create Release
         id: create_release
         uses: actions/create-release@master
@@ -84,33 +78,32 @@ jobs:
           release_name: ${{ steps.tags.outputs.tag }}
           draft: true
           prerelease: false
-      - name: Upload x86_64 asset
-        id: upload-release-asset-x86_64
+
+
+  upload_artifacts:
+    name: Upload build artifacts to new release
+    needs: [build-releases, create_release]
+    strategy:
+      matrix:
+        arch: ${{ globals.arch_list }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read info
+        id: tags
+        shell: bash
+        run: |
+          echo ::set-output name=TAG::${GITHUB_REF/refs\/tags\//}
+      - uses: actions/download-artifact@v2
+        with:
+          name: paru-${{ matrix.arch }}
+      - name: Upload ${{ matrix.arch }} asset
+        id: upload-release-asset-${{ matrix.arch }}
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./paru-x86_64.tar.zst
-          asset_name: paru-${{ steps.tags.outputs.tag }}-x86_64.tar.zst
+          asset_path: ./paru-${{ matrix.arch }}.tar.zst
+          asset_name: paru-${{ steps.tags.outputs.tag }}-${{ matrix.arch }}.tar.zst
           asset_content_type: application/tar+zstd
-      - name: Upload aarch64 asset
-        id: upload-release-asset-aarch64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./paru-aarch64.tar.zst
-          asset_name: paru-${{ steps.tags.outputs.tag }}-aarch64.tar.zst
-          asset_content_type: application/tar+zstd
-      - name: Upload armv7h asset
-        id: upload-release-asset-armv7h
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./paru-armv7h.tar.zst
-          asset_name: paru-${{ steps.tags.outputs.tag }}-armv7h.tar.zst
-          asset_content_type: application/tar+zstd
+
