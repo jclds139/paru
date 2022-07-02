@@ -4,20 +4,17 @@ on:
     tags:
       - v*
 
-env:
-  arch_list:
-          [
-            "x86_64",
-            "aarch64",
-            "armv7h"
-          ]
-
 
 jobs:
   build-releases:
     strategy:
       matrix:
-        arch: ${{ env.arch_list }}
+        arch:
+          [
+            "x86_64",
+            "aarch64",
+            "armv7h"
+          ]
     name: Build ${{ matrix.arch }}
     runs-on: ubuntu-latest
     steps:
@@ -85,7 +82,7 @@ jobs:
     needs: [build-releases, create_release]
     strategy:
       matrix:
-        arch: ${{ env.arch_list }}
+        arch: ${{ jobs.build-release.strategy.matrix.arch }}
     runs-on: ubuntu-latest
     steps:
       - name: Read info
