@@ -44,13 +44,12 @@ jobs:
         run: |
           sudo arch-chroot rootfs/ /bin/sh -c 'pacman-key --init && pacman-key --populate'
           sudo arch-chroot rootfs/ /bin/pacman -Syu --noconfirm
-          sudo arch-chroot rootfs/ /bin/pacman -S --needed --noconfirm base base-devel rustup
+          sudo arch-chroot rootfs/ /bin/pacman -S --needed --noconfirm base base-devel rustup git
           sudo arch-chroot rootfs/ /bin/rustup default stable
       - name: Build ${{ matrix.arch }} release
         shell: bash
         run: |
-          sudo mkdir -p rootfs/root/.cargo/ /tmp/cargo
-          sudo mount --bind /tmp/cargo rootfs/root/.cargo/
+          export TARGET_ARCH=${{ matrix.arch }}
           sudo arch-chroot rootfs/ /bin/sh -c 'cd /paru && scripts/dist'
           mkdir -p artifacts
           sudo mv rootfs/paru/paru.tar.zst artifacts/paru-${{ matrix.arch }}.tar.zst
