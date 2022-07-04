@@ -1,8 +1,10 @@
 #!/bin/sh
 set -e
-if [ "$TARGET_ARCH" == "arm*" ]; then
-	export CARGO_NET_GIT_FETCH_WITH_CLI=true
-fi
+case "$TARGET_ARCH" in
+	arm*)
+		export CARGO_NET_GIT_FETCH_WITH_CLI=true
+		;;
+esac
 cargo build --release --locked --target-dir target
 scripts/mkmo locale/
 strip target/release/paru
